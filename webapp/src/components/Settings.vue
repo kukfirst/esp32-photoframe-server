@@ -4,13 +4,13 @@
     <v-card class="mb-6">
       <v-tabs v-model="sourceTab" color="primary" show-arrows>
         <v-tab value="gallery">Gallery</v-tab>
-        <v-tab value="immich">Immich</v-tab>
-        <v-tab value="synology_photos">Synology</v-tab>
+        <v-tab v-if="!HIDDEN_SOURCES.has('immich')" value="immich">Immich</v-tab>
+        <v-tab v-if="!HIDDEN_SOURCES.has('synology_photos')" value="synology_photos">Synology</v-tab>
         <v-tab value="google_photos">Google</v-tab>
-        <v-tab value="unsplash">Unsplash</v-tab>
-        <v-tab value="pexels">Pexels</v-tab>
+        <v-tab v-if="!HIDDEN_SOURCES.has('unsplash')" value="unsplash">Unsplash</v-tab>
+        <v-tab v-if="!HIDDEN_SOURCES.has('pexels')" value="pexels">Pexels</v-tab>
         <v-tab value="url">URL Proxy</v-tab>
-        <v-tab value="ai_generation">AI Generation</v-tab>
+        <v-tab v-if="!HIDDEN_SOURCES.has('ai_generation')" value="ai_generation">AI Generation</v-tab>
       </v-tabs>
       <v-card-text>
         <div v-if="sourceHasGallery">
@@ -769,6 +769,7 @@
           <!-- Gallery -->
           <v-window-item value="gallery">
             <v-card-text>
+              <template v-if="SHOW_TELEGRAM">
               <h3 class="text-subtitle-1 font-weight-bold mb-1">
                 Telegram Bot (Upload)
               </h3>
@@ -858,6 +859,7 @@
                   >Save Token</v-btn
                 >
               </div>
+              </template>
             </v-card-text>
           </v-window-item>
 
@@ -1216,7 +1218,7 @@
                     <v-tab value="power">Power</v-tab>
                     <v-tab value="homeAssistant">Home Assistant</v-tab>
                     <v-tab value="processing">Processing</v-tab>
-                    <v-tab value="ai">AI Generation</v-tab>
+                    <v-tab v-if="!HIDDEN_SOURCES.has('ai_generation')" value="ai">AI Generation</v-tab>
                     <v-tab v-if="!isGrayscale" value="palette">Palette</v-tab>
                     <v-tab v-if="isGrayscale" value="grayscale"
                       >Grayscale</v-tab
@@ -2718,6 +2720,17 @@ const galleryStore = useGalleryStore();
 const authStore = useAuthStore();
 const activeMainTab = ref('devices');
 // Unified source selector for the top card (per-source gallery + settings).
+// cachypc fork: sources this install does not use. The code stays (keeps upstream
+// rebases trivial); only the UI entry points are hidden.
+const HIDDEN_SOURCES = new Set([
+  'immich',
+  'synology_photos',
+  'unsplash',
+  'pexels',
+  'ai_generation',
+]);
+const SHOW_TELEGRAM = false;
+
 const sourceTab = ref('gallery');
 const sourceHasGallery = computed(() =>
   [
@@ -2959,7 +2972,7 @@ async function turnOffFramePassword() {
   await sendFramePassword('');
 }
 
-const selectedSource = ref('immich');
+const selectedSource = ref('gallery');
 const sourceOptions = [
   { title: 'Gallery', value: 'gallery' },
   { title: 'Immich', value: 'immich' },
@@ -2971,7 +2984,7 @@ const sourceOptions = [
   { title: 'AI Generation', value: 'ai_generation' },
   { title: 'Fractal (Mandelbrot zoom)', value: 'fractal' },
   { title: 'DLA (diffusion-limited aggregation)', value: 'dla' },
-];
+].filter((o) => !HIDDEN_SOURCES.has(o.value));
 
 // URL Proxy State
 const urlSources = ref<any[]>([]); // Renamed from urlImages
@@ -4256,7 +4269,7 @@ const SOURCE_TABS = [
 // Restore the active source tab from the URL hash (#gtab=<tab>) on load.
 const restoreGalleryTabFromHash = () => {
   const m = window.location.hash.match(/gtab=([\w-]+)/);
-  if (m && SOURCE_TABS.includes(m[1])) {
+  if (m && SOURCE_TABS.includes(m[1]) && !HIDDEN_SOURCES.has(m[1])) {
     sourceTab.value = m[1];
   }
 };
